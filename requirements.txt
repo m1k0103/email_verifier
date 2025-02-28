@@ -2,3 +2,4 @@ re
 multiprocessing
 smtplib
 dns
+pyyaml
