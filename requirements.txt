@@ -1,5 +1,5 @@
-re
 multiprocessing
-smtplib
-dns
+dnspython
 pyyaml
+requests
+socks
