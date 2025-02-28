@@ -32,6 +32,17 @@ def check_email_syntax(email):
 	else:
 		return
 
+#checks the domain that an email is using
+def check_email_domain(email_list):
+	domain =  # wrote all wrong. fix later #### CARRY ON HERE
+	try:
+		dns.resolver.resolve(domain, "MX")
+		return 
+		
+	except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.Timeout):
+		return
+	
+
 
 # main function
 def main():
@@ -52,4 +63,5 @@ def main():
 	
 	#uses multiprocessing again to then process all the correct_syntax_emails and check if their domains are active/valid
 	with Pool(cpu_count()) as p:
+		domain_valid_emails = p.map(check_email_domain, correct_syntax_emails)
 		pass # carry on from here
