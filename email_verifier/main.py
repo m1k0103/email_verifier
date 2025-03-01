@@ -7,6 +7,7 @@ import yaml
 import string
 import random
 from urllib.parse import urlparse
+import time
 
 
 # i love stack overflow.
@@ -61,33 +62,37 @@ def check_email_syntax(email):
 		return
 
 #checks the domain that an email is using
-def check_email_domain_smtp(email):
-	try:
-		# check domain
-		domain = email.split("@")[1] # wrote all wrong. fix later #### CARRY ON HERE
-		mx_records = dns.resolver.resolve(domain, "MX")
-		mx_host = str(mx_records[0].exchange)
+def check_email_domain_smtp(email_list):
+	valid = []
+	for email in email_list:
+		try:
+			# check domain
+			domain = email.split("@")[1] # wrote all wrong. fix later #### CARRY ON HERE
+			mx_records = dns.resolver.resolve(domain, "MX")
+			mx_host = str(mx_records[0].exchange)
 
-		#check SMTP
-		server = smtplib.SMTP(timeout=1)
-		server.connect(mx_host)
-		server.helo()
-		server.mail(generate_fake_email())
-		code, _ = server.rcpt(email)
-		server.quit()
-		print(f"!!! valid {email}")
-		if code == 250:
-			return email
-	except Exception as e:
-		print(e)
-		print(f"{email} invalid")
-		return
-	except ConnectionRefusedError:
-		print("--- Connection refused")
+			#check SMTP
+			server = smtplib.SMTP(timeout=1)
+			server.connect(mx_host)
+			server.helo()
+			server.mail(generate_fake_email())
+			code, _ = server.rcpt(email)
+			server.quit()
+			print(f"!!! valid {email}")
+			if code == 250:
+				valid.append(email)
+		except Exception as e:
+			print(e)
+			print(f"{email} invalid")
+			
+		except ConnectionRefusedError:
+			print("--- Connection refused")
+	return valid
 
 
 # main function
 def main():
+	start = time.time()
 	#uses multiprocessing to get contents of multiple files faster
 	with Pool(cpu_count()) as p:
 		paths = get_file_paths()
@@ -104,8 +109,13 @@ def main():
 	
 	#uses multiprocessing again to then process all the correct_syntax_emails and check if their domains are active/valid
 	with Pool(cpu_count()) as p:
-		valid_emails = p.map(check_email_domain_smtp, correct_syntax_emails)
+		#chunks the list for increased performance
+		n = 10
+		chunked = [correct_syntax_emails[i:i + n] for i in range(0, len(correct_syntax_emails), n)]
+		
+		valid_emails = p.map(check_email_domain_smtp, chunked)
 	with open("out.txt", "a") as f:
-		for e in valid_emails:
-			f.write(f"{e}\n")
-	print("done finally....")
+		to_write = join_lists(valid_emails)
+		for em in to_write:
+			f.write(f"{str(em)}\n")
+	print(f"Complete. Cleaning wordlist of size {len(emails)} took {time.time() - start}")
